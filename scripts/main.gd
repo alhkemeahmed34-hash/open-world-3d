@@ -112,19 +112,20 @@ func _create_hud() -> void:
     time_label.add_theme_font_size_override("font_size", 20)
     panel.add_child(time_label)
 
-    _make_control_button(layer, "↑", Vector2(90, -154), "move_forward")
-    _make_control_button(layer, "↓", Vector2(90, -62), "move_back")
-    _make_control_button(layer, "←", Vector2(14, -108), "move_left")
-    _make_control_button(layer, "→", Vector2(166, -108), "move_right")
-    _make_control_button(layer, "قفز", Vector2(-116, -100), "jump")
+    _make_control_button(layer, "↑", Vector2(82, -270), "move_forward")
+    _make_control_button(layer, "↓", Vector2(82, -130), "move_back")
+    _make_control_button(layer, "←", Vector2(12, -200), "move_left")
+    _make_control_button(layer, "→", Vector2(152, -200), "move_right")
+    _make_control_button(layer, "قفز", Vector2.ZERO, "jump")
 
 func _make_control_button(layer: CanvasLayer, caption: String, offset: Vector2, action: String) -> void:
     var button := Button.new()
     button.text = caption
     button.custom_minimum_size = Vector2(64, 64)
-    button.position = Vector2(22, get_viewport().get_visible_rect().size.y - 190) + offset
+    var viewport_size := get_viewport().get_visible_rect().size
+    button.position = Vector2(offset.x, viewport_size.y + offset.y)
     if action == "jump":
-        button.position = Vector2(get_viewport().get_visible_rect().size.x - 100, get_viewport().get_visible_rect().size.y - 120)
+        button.position = Vector2(viewport_size.x - 100, viewport_size.y - 120)
     button.add_theme_font_size_override("font_size", 22)
     button.modulate = Color(1, 1, 1, 0.82)
     layer.add_child(button)
