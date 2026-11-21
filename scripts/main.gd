@@ -1,22 +1,25 @@
 extends Node3D
 
 const PLAYER_SCENE: PackedScene = preload("res://scenes/player.tscn")
-var elapsed: float = 0.0
 var time_label: Label
+var mission_label: Label
+var mission_area: Area3D
+var mission_stage: int = 0
 
 func _ready() -> void:
     _create_environment()
     _create_city()
     var player = PLAYER_SCENE.instantiate()
     player.position = Vector3(0, 0.15, 10)
+    player.add_to_group("player")
     add_child(player)
     _create_hud()
+    _create_mission()
 
-func _process(delta: float) -> void:
-    elapsed += delta
+func _process(_delta: float) -> void:
     if is_instance_valid(time_label):
-        var game_minutes := int(elapsed * 3.0) % 1440
-        time_label.text = "OPEN WORLD 3D   |   %02d:%02d" % [game_minutes / 60, game_minutes % 60]
+        var clock := Time.get_datetime_dict_from_system()
+        time_label.text = "OPEN WORLD 3D   |   %02d:%02d" % [clock.hour, clock.minute]
 
 func _create_environment() -> void:
     var world_env := WorldEnvironment.new()
@@ -107,10 +110,16 @@ func _create_hud() -> void:
     panel.position = Vector2(16, 14)
     panel.size = Vector2(290, 48)
     layer.add_child(panel)
+    var hud_column := VBoxContainer.new()
+    panel.add_child(hud_column)
     time_label = Label.new()
     time_label.text = "OPEN WORLD 3D"
-    time_label.add_theme_font_size_override("font_size", 20)
-    panel.add_child(time_label)
+    time_label.add_theme_font_size_override("font_size", 18)
+    hud_column.add_child(time_label)
+    mission_label = Label.new()
+    mission_label.text = "المهمة: توجّه إلى نقطة التجمع"
+    mission_label.add_theme_font_size_override("font_size", 15)
+    hud_column.add_child(mission_label)
 
     _make_control_button(layer, "↑", Vector2(82, -270), "move_forward")
     _make_control_button(layer, "↓", Vector2(82, -130), "move_back")
@@ -131,3 +140,40 @@ func _make_control_button(layer: CanvasLayer, caption: String, offset: Vector2, 
     layer.add_child(button)
     button.button_down.connect(func(): Input.action_press(action))
     button.button_up.connect(func(): Input.action_release(action))
+
+
+func _create_mission() -> void:
+    mission_area = Area3D.new()
+    mission_area.name = "MissionCheckpoint"
+    mission_area.position = Vector3(0, 1.0, -35)
+    var ring := MeshInstance3D.new()
+    var ring_mesh := TorusMesh.new()
+    ring_mesh.inner_radius = 1.65
+    ring_mesh.outer_radius = 2.0
+    ring.mesh = ring_mesh
+    var ring_material := StandardMaterial3D.new()
+    ring_material.albedo_color = Color(1.0, 0.72, 0.12)
+    ring_material.emission_enabled = true
+    ring_material.emission = Color(1.0, 0.48, 0.04)
+    ring_material.emission_energy_multiplier = 1.4
+    ring.material_override = ring_material
+    mission_area.add_child(ring)
+    var trigger := CollisionShape3D.new()
+    var sphere := SphereShape3D.new()
+    sphere.radius = 2.8
+    trigger.shape = sphere
+    mission_area.add_child(trigger)
+    mission_area.body_entered.connect(_on_mission_checkpoint_entered)
+    add_child(mission_area)
+
+func _on_mission_checkpoint_entered(body: Node3D) -> void:
+    if not body.is_in_group("player"):
+        return
+    if mission_stage == 0:
+        mission_stage = 1
+        mission_label.text = "أحسنت! المهمة 1 اكتملت — توجّه للنقطة التالية"
+        mission_area.position = Vector3(45, 1.0, -35)
+    elif mission_stage == 1:
+        mission_stage = 2
+        mission_label.text = "تم إنجاز المهمتين! استكشف المدينة"
+        mission_area.queue_free()
